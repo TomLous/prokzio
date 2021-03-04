@@ -1,2 +1,18 @@
-*.class
+# IntelliJ
+.idea*
+*.iml
+
+# VS Code
+.bsp
+.metals
+.vscode
+.bloop
+
+# Mac
+.DS_Store
+
+# SBT
+project/project
+target/
 *.log
+*.class
