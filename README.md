@@ -29,3 +29,12 @@ Zio gRPC/REST HTTP Proxy for Kafka
 Before running sbt
 #### 
 `exec $SHELL -l`
+
+### part0-setup
+Test 1
+```
+sbt service/'graalvm-native-image:packageBin'
+./service/target/graalvm-native-image/service
+```
+
+Works!
