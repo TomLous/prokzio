@@ -1,20 +1,18 @@
 // Versions
-lazy val scalaVersions = Seq(
-  "2.13.5",
-  "2.12.13"
-  // TODO: add dotty cross compile scala 3+
-)
+lazy val scala2Version = "2.13.5"
+
+val zioVersion = "1.0.4-2"
 
 // Needs to be available here https://github.com/orgs/graalvm/packages/container/graalvm-ce/versions
 val jvmVersion = "11"
 val graalVersion = "21.0.0.2"
 
-val zioVersion = "1.0.4-2"
-
 // Libraries
 lazy val zioLibs = Seq(
   "dev.zio" %% "zio" % zioVersion,
-  "dev.zio" %% "zio-test-sbt" % zioVersion % Test
+  "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+  "dev.zio" %% "zio-test-sbt" % zioVersion % Test,
+  "dev.zio" %% "zio-test-magnolia" % zioVersion % Test
 )
 
 // (Sub) projects
@@ -37,7 +35,7 @@ lazy val util = (project in file("util"))
   )
 
 lazy val service = (project in file("service"))
-  .enablePlugins(JavaAppPackaging, GraalVMNativeImagePlugin)
+  .enablePlugins(NativeImagePlugin)
   .settings(
     name := "service",
     Compile / mainClass := Some("xyz.graphiq.prokzio.service.HelloWorld"),
@@ -53,8 +51,7 @@ lazy val service = (project in file("service"))
 // Settings
 lazy val commonSettings = Seq(
   organization := "xyz.graphiq",
-  scalaVersion := scalaVersions.head,
-  crossScalaVersions := scalaVersions,
+  scalaVersion := scala2Version,
   libraryDependencies ++= zioLibs,
   scalacOptions ++= Seq(
     "-deprecation", // Emit warning and location for usages of deprecated APIs.
@@ -70,14 +67,12 @@ lazy val commonSettings = Seq(
     "-Xcheckinit", // Wrap field accessors to throw an exception on uninitialized access.
     "-Xfatal-warnings", // Fail the compilation if there are any warnings.
     "-Xlint:adapted-args", // Warn if an argument list is modified to match the receiver.
-//    "-Xlint:by-name-right-associative", // By-name parameter of right associative operator.
     "-Xlint:constant", // Evaluation of a constant arithmetic expression results in an error.
     "-Xlint:delayedinit-select", // Selecting member of DelayedInit.
     "-Xlint:doc-detached", // A Scaladoc comment appears to be detached from its element.
     "-Xlint:inaccessible", // Warn about inaccessible types in method signatures.
     "-Xlint:infer-any", // Warn when a type argument is inferred to be `Any`.
     "-Xlint:missing-interpolator", // A string literal appears to be missing an interpolator id.
-//    "-Xlint:nullary-override", // Warn when non-nullary `def f()' overrides nullary `def f'.
     "-Xlint:nullary-unit", // Warn when nullary methods return Unit.
     "-Xlint:option-implicit", // Option.apply used implicit view.
     "-Xlint:package-object-classes", // Class or object defined in package object.
@@ -85,15 +80,7 @@ lazy val commonSettings = Seq(
     "-Xlint:private-shadow", // A private field (or class parameter) shadows a superclass field.
     "-Xlint:stars-align", // Pattern sequence wildcard must align with sequence component.
     "-Xlint:type-parameter-shadow", // A local type parameter shadows a type already in scope.
-//    "-Xlint:unsound-match", // Pattern match may not be typesafe.
-//    "-Yno-adapted-args", // Do not adapt an argument list (either Graalvm-native-imageby inserting () or creating a tuple) to match the receiver.
-//    "-Ypartial-unification", // Enable partial unification in type constructor inference
-    "-Ywarn-dead-code", // Warn when dead code is identified.
     "-Ywarn-extra-implicit", // Warn when more than one implicit parameter section is defined.
-//    "-Ywarn-inaccessible", // Warn about inaccessible types in method signatures.
-//    "-Ywarn-infer-any", // Warn when a type argument is inferred to be `Any`.
-//    "-Ywarn-nullary-override", // Warn when non-nullary `def f()' overrides nullary `def f'.
-//    "-Ywarn-nullary-unit", // Warn when nullary methods return Unit.
     "-Ywarn-numeric-widen", // Warn when numerics are widened.
     "-Ywarn-unused:implicits", // Warn if an implicit parameter is unused.
     "-Ywarn-unused:imports", // Warn if an import selector is not referenced.
@@ -119,17 +106,20 @@ lazy val scalafmtSettings = Seq(
 )
 
 lazy val graalSettings = Seq(
-  containerBuildImage := Some(s"ghcr.io/graalvm/graalvm-ce:java$jvmVersion-$graalVersion"),
-  graalVMNativeImageOptions ++= Seq(
-    "--verbose",
-//    "--no-server",
-//    "--no-fallback",
-//    "--install-exit-handlers",
-////    "--static", // TODO: maybe enable in non macos builds? https://github.com/McPringle/micronaut-workshop/issues/1
-////    "--libc=musl",
-////    "-H:+StaticExecutableWithDynamicLibC",
+  Global / excludeLintKeys += nativeImageVersion,
+  nativeImageVersion := graalVersion,
+  Global / excludeLintKeys += nativeImageJvm,
+  nativeImageJvm := s"graalvm-java$jvmVersion",
+  nativeImageOptions ++= Seq(
+    "--no-fallback",
+    "--install-exit-handlers",
+    "--allow-incomplete-classpath",
+    "-H:+RemoveSaturatedTypeFlows",
     "-H:+ReportExceptionStackTraces"
-//    "-H:+RemoveSaturatedTypeFlows"
+//    "--verbose",
+//    "-H:+StaticExecutableWithDynamicLibC" // TODO: maybe enable in non macos builds? https://github.com/McPringle/micronaut-workshop/issues/1
+//    "--static"
+//    "--libc=musl"
   )
 )
 
