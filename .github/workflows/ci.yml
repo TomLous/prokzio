@@ -1,0 +1,30 @@
+name: CI
+on:
+  push:
+    branches: ['**']
+    tags: [v*]
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: olafurpg/setup-scala@v10
+        with:
+          java-version: 11
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.sbt
+            ~/.ivy2/cache
+            ~/.coursier
+          key: ${{ runner.os }}-sbt-cache-v2-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
+      # Do some testing
+      - run: sbt service/graalvm-native-image:packageBin
+        shell: bash
+      - run: sbt service/docker:publishLocal
+        shell: bash
+      - run: docker run --rm -it service
+        shell: bash
+      # Do some pushing
+
+
