@@ -23,7 +23,7 @@ jobs:
         shell: bash
       - run: sbt service/docker:publishLocal
         shell: bash
-      - run: docker run --rm -it service
+      - run: docker run --rm -i service
         shell: bash
       # Do some pushing
 
