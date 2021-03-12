@@ -1,11 +1,34 @@
+import com.typesafe.sbt.packager.docker.DockerChmodType
+
 // Versions
 lazy val scala2Version = "2.13.5"
 
+// Library versiosn
 val zioVersion = "1.0.4-2"
 
-// Needs to be available here https://github.com/orgs/graalvm/packages/container/graalvm-ce/versions
+// Graal/JDK stuff. Needs to be available here https://github.com/orgs/graalvm/packages/container/graalvm-ce/versions
 val jvmVersion = "11"
 val graalVersion = "21.0.0.2"
+val baseGraalOptions = Seq(
+  "--verbose",
+  "--no-fallback",
+  "--no-server",
+  "--install-exit-handlers",
+  "--allow-incomplete-classpath",
+  "--enable-http",
+  "--enable-https",
+  "--enable-url-protocols=https,http",
+  "--initialize-at-build-time",
+  "--report-unsupported-elements-at-runtime",
+  "-H:+RemoveSaturatedTypeFlows",
+  "-H:+ReportExceptionStackTraces",
+  "-H:-ThrowUnsafeOffsetErrors",
+  "-H:+PrintClassInitialization"
+)
+
+// Variables
+lazy val baseImage = "alpine:3.13.1"
+lazy val dockerBasePath = "/opt/docker/bin"
 
 // Libraries
 lazy val zioLibs = Seq(
@@ -34,19 +57,33 @@ lazy val util = (project in file("util"))
     name := "util"
   )
 
-lazy val service = (project in file("service"))
-  .enablePlugins(NativeImagePlugin)
-  .settings(
-    name := "service",
-    Compile / mainClass := Some("xyz.graphiq.prokzio.service.HelloWorld"),
-    commonSettings,
-    testSettings,
-    scalafmtSettings,
-    graalSettings
-  )
-  .dependsOn(
-    util
-  )
+lazy val service = createProjectModule(
+  "service",
+  "HTTP Proxy Service. For now just Hello World",
+  "xyz.graphiq.prokzio.service.HelloWorld"
+)
+
+// methods
+def createProjectModule(
+    moduleName: String,
+    description: String,
+    runClass: String
+): Project =
+  Project(moduleName, file(moduleName))
+    .enablePlugins(NativeImagePlugin, GraalVMNativeImagePlugin, DockerPlugin)
+    .settings(
+      name := "service",
+      Compile / mainClass := Some(runClass),
+      dockerBinaryPath := s"$dockerBasePath/$moduleName",
+      commonSettings,
+      testSettings,
+      scalafmtSettings,
+//      graalLocalSettings,
+      graalDockerSettings
+    )
+    .dependsOn(
+      util
+    )
 
 // Settings
 lazy val commonSettings = Seq(
@@ -105,22 +142,34 @@ lazy val scalafmtSettings = Seq(
   scalafmtOnCompile in ThisBuild := true
 )
 
-lazy val graalSettings = Seq(
+lazy val graalLocalSettings = Seq(
   Global / excludeLintKeys += nativeImageVersion,
   nativeImageVersion := graalVersion,
   Global / excludeLintKeys += nativeImageJvm,
   nativeImageJvm := s"graalvm-java$jvmVersion",
-  nativeImageOptions ++= Seq(
-    "--no-fallback",
-    "--install-exit-handlers",
-    "--allow-incomplete-classpath",
-    "-H:+RemoveSaturatedTypeFlows",
-    "-H:+ReportExceptionStackTraces"
-//    "--verbose",
-//    "-H:+StaticExecutableWithDynamicLibC" // TODO: maybe enable in non macos builds? https://github.com/McPringle/micronaut-workshop/issues/1
-//    "--static"
-//    "--libc=musl"
-  )
+  nativeImageOptions ++= baseGraalOptions
+)
+
+lazy val graalDockerSettings = Seq(
+  GraalVMNativeImage / containerBuildImage := GraalVMNativeImagePlugin
+    .generateContainerBuildImage(s"ghcr.io/graalvm/graalvm-ce:java$jvmVersion-$graalVersion")
+    .value,
+  graalVMNativeImageOptions ++= baseGraalOptions ++ Seq(
+    "--static"
+  ),
+  dockerBaseImage := baseImage,
+  dockerUpdateLatest := true,
+  dockerChmodType := DockerChmodType.Custom("ugo=rwX"),
+  dockerAdditionalPermissions += (DockerChmodType.Custom(
+    "ugo=rwx"
+  ), dockerBinaryPath.value),
+  mappings in Docker := Seq(
+    ((target in GraalVMNativeImage).value / "service") -> dockerBinaryPath.value
+  ),
+  dockerExposedPorts := Seq(9000, 9001), // TODO <- correct this with config?
+  dockerEntrypoint := Seq(dockerBinaryPath.value)
 )
 
 Global / cancelable := false
+
+lazy val dockerBinaryPath = settingKey[String]("Return the docker path")
