@@ -18,13 +18,17 @@ jobs:
             ~/.ivy2/cache
             ~/.coursier
           key: ${{ runner.os }}-sbt-cache-v2-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
-      # Do some testing
+      - uses: satackey/action-docker-layer-caching@v0.0.11
+        continue-on-error: true
+      # TODO some testing
+      # TODO some version bumping
       - run: sbt service/graalvm-native-image:packageBin
         shell: bash
       - run: sbt service/docker:publishLocal
         shell: bash
       - run: docker run --rm -i service
         shell: bash
-      # Do some pushing
+      # TODO pushing
+      # TODO deploying
 
 

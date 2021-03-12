@@ -3,10 +3,10 @@ import com.typesafe.sbt.packager.docker.DockerChmodType
 // Versions
 lazy val scala2Version = "2.13.5"
 
-// Library versiosn
+// Library versions
 val zioVersion = "1.0.4-2"
 
-// Graal/JDK stuff. Needs to be available here https://github.com/orgs/graalvm/packages/container/graalvm-ce/versions
+// Graal/JVM stuff. Needs to be available here https://github.com/orgs/graalvm/packages/container/graalvm-ce/versions
 val jvmVersion = "11"
 val graalVersion = "21.0.0.2"
 val baseGraalOptions = Seq(
@@ -78,7 +78,7 @@ def createProjectModule(
       commonSettings,
       testSettings,
       scalafmtSettings,
-//      graalLocalSettings,
+      graalLocalSettings,
       graalDockerSettings
     )
     .dependsOn(
@@ -172,4 +172,4 @@ lazy val graalDockerSettings = Seq(
 
 Global / cancelable := false
 
-lazy val dockerBinaryPath = settingKey[String]("Return the docker path")
+lazy val dockerBinaryPath = settingKey[String]("Get the docker path")
