@@ -16,3 +16,6 @@ project/project
 target/
 *.log
 *.class
+
+# Project
+output

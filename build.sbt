@@ -1,4 +1,5 @@
 import com.typesafe.sbt.packager.docker.DockerChmodType
+//import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
 
 // Versions
 lazy val scala2Version = "2.13.5"
@@ -66,13 +67,14 @@ lazy val service = createProjectModule(
 // methods
 def createProjectModule(
     moduleName: String,
-    description: String,
+    moduleDescription: String,
     runClass: String
 ): Project =
   Project(moduleName, file(moduleName))
     .enablePlugins(NativeImagePlugin, GraalVMNativeImagePlugin, DockerPlugin)
     .settings(
       name := "service",
+      description := moduleDescription,
       Compile / mainClass := Some(runClass),
       dockerBinaryPath := s"$dockerBasePath/$moduleName",
       commonSettings,
@@ -147,7 +149,8 @@ lazy val graalLocalSettings = Seq(
   nativeImageVersion := graalVersion,
   Global / excludeLintKeys += nativeImageJvm,
   nativeImageJvm := s"graalvm-java$jvmVersion",
-  nativeImageOptions ++= baseGraalOptions
+  nativeImageOptions ++= baseGraalOptions,
+  nativeImageOutput := file("output") / name.value
 )
 
 lazy val graalDockerSettings = Seq(
@@ -164,7 +167,7 @@ lazy val graalDockerSettings = Seq(
     "ugo=rwx"
   ), dockerBinaryPath.value),
   mappings in Docker := Seq(
-    ((target in GraalVMNativeImage).value / "service") -> dockerBinaryPath.value
+    ((target in GraalVMNativeImage).value / name.value) -> dockerBinaryPath.value
   ),
   dockerExposedPorts := Seq(9000, 9001), // TODO <- correct this with config?
   dockerEntrypoint := Seq(dockerBinaryPath.value)
@@ -173,3 +176,35 @@ lazy val graalDockerSettings = Seq(
 Global / cancelable := false
 
 lazy val dockerBinaryPath = settingKey[String]("Get the docker path")
+
+//// Release
+//lazy val releaseSettings = Seq(
+//  releaseProcess := {
+//    val uploadNativeDocker: ReleaseStep = ReleaseStep(
+//      action = { st: State =>
+//        val extracted = Project.extract(st)
+//        val (st2, _) = extracted.runTask(packageBin in GraalVMNativeImage in nativeServer, st)
+//        val (st3, _) = extracted.runTask(publish in Docker in nativeServer, st2)
+//        st3
+//      }
+//    )
+//
+//    Seq(
+//      checkSnapshotDependencies,
+//      inquireVersions,
+//      // publishing locally so that the pgp password prompt is displayed early
+//      // in the process
+//      releaseStepCommand("publishLocalSigned"),
+//      runClean,
+//      runTest,
+//      setReleaseVersion,
+//      uploadNativeDocker,
+//      updateVersionInDocs(organization.value),
+//      commitReleaseVersion,
+//      tagRelease,
+//      publishArtifacts,
+//      releaseStepCommand("sonatypeBundleRelease"),
+//      pushChanges
+//    )
+//  }
+//)
