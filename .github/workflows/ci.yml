@@ -37,7 +37,7 @@ jobs:
           git-user-signingkey: true
           git-commit-gpgsign: true
           git-tag-gpgsign: true
-          git-push-gpgsign: true
+          git-push-gpgsign: false
 
       - name: Docker Login
         uses: azure/docker-login@v1
