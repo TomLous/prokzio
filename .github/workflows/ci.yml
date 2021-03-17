@@ -1,8 +1,10 @@
 name: CI
+
 on:
   push:
     branches: ['**']
     tags: [v*]
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -42,14 +44,14 @@ jobs:
       - name: Docker Login
         uses: azure/docker-login@v1
         with:
-          login-server: docker.pkg.github.com
+          login-server: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Lint, Test, Bump & Deploy
         run: sbt bumpSnapshot
         env:
-          DOCKER_REPOSITORY: docker.pkg.github.com
+          DOCKER_REPOSITORY: ghcr.io
           DOCKER_USERNAME: ${{ github.repository_owner }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash

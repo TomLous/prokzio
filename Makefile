@@ -17,7 +17,6 @@
 # The remote registry for Docker containers
 CONTAINER_REGISTRY :=  ghcr.io
 
-
 # The path where artifacts are created
 OUTPUT_PATH := ./output
 
@@ -32,31 +31,20 @@ VERSION = $(eval VERSION := $$(shell $(SBT_COMMAND) showVersion))$(VERSION)
 # Allow to pass the module name as command line arg
 MODULE = $(shell arg="$(filter-out $@,$(MAKECMDGOALS))" && echo $${arg:-${1}})
 
-# Feature name
-FEATURE = $(shell echo $(MODULE) | sed -e 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]' )
-
-# Available modules to build
-MODULES = $(eval MODULES :=  $$(shell $(SBT_COMMAND) listModules))$(MODULES) #Weird bug adding some escape char to all output
 
 # Get the image namespace/repo
 IMAGE_NAME = $(eval IMAGE_NAME := $$(shell $(SBT_COMMAND) $(MODULE)/showImageName))$(IMAGE_NAME)
 
-
-####
-
 define check_module
-	@$(if $(MODULE), $(info Using module: $(MODULE)), $(error Module is not set in command (make [action] [module]). Use one of the following modules as argument: $(MODULES)))
+	@$(if $(MODULE), $(info Using module: $(MODULE)), $(error Module is not set in command (make [action] [module]).))
 endef
 
 
 .DEFAULT_GOAL := version
 
-
-
 .PHONY: version
 version:
 	@echo $(VERSION)
-
 
 
 # Build Commands
@@ -65,19 +53,12 @@ graal-build-local:
 	@$(call check_module)
 	$(SBT_COMMAND) $(MODULE)/nativeImage
 
-.PHONY: graal-build-docker
-graal-build-docker:
+.PHONY: graal-build-docker-local
+graal-build-docke-localr:
 	@$(call check_module)
 	$(SBT_COMMAND) $(MODULE)/graalvm-native-image:packageBin
-	$(SBT_COMMAND) $(MODULE)/service/docker:publishLocal #TODO Maybe setup remote publishing in sbt?
+	$(SBT_COMMAND) $(MODULE)/docker:publishLocal
 
-.PHONY: docker-push-registry
-docker-push-registry: guard-REGISTRY_OWNER
-	@$(call check_module)
-	@docker tag $(IMAGE_NAME):$(VERSION) $(CONTAINER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_NAME):$(VERSION)
-	@docker tag $(IMAGE_NAME):$(VERSION) $(CONTAINER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_NAME):latest
-	@docker push $(CONTAINER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_NAME):$(VERSION)
-	@docker push $(CONTAINER_REGISTRY)/$(REGISTRY_OWNER)/$(IMAGE_NAME):latest
 
 .PHONY: docker-image-clean
 docker-image-clean:
@@ -96,20 +77,6 @@ docker-images-clean:
 docker-images-purge:
 	@-docker rmi $$(docker images -f "dangling=true" -q)
 	@-docker system prune
-
-
-# Github Container Registry Commands
-.PHONY: registry-docker-push-login
-registry-docker-push-login: guard-REGISTRY_PASSWORD guard-CONTAINER_REGISTRY guard-REGISTRY_USERNAME
-	@echo $(REGISTRY_PASSWORD) | docker login $(CONTAINER_REGISTRY) --username $(REGISTRY_USERNAME) --password-stdin
-
-.PHONY: registry-list-images
-registry-list-images: guard-REGISTRY_PASSWORD guard-CHART_REGISTRY guard-CHART_USERNAME guard-REPO_NAME
-	@curl -s -u $(CHART_USERNAME):$(CHART_PASSWORD) -X GET https://$(CHART_REGISTRY)/v2/_catalog?n=2000 | jq '.[] | .[] | select( startswith ("$(REPO_NAME)/")  and (contains("/charts/") | not))'
-
-.PHONY: registry-repository-tags
-registry-repository-tags: guard-REGISTRY_PASSWORD guard-CHART_REGISTRY guard-CHART_USERNAME guard-ENV_REPOSITORY
-	curl -s -u $(CHART_USERNAME):$(CHART_PASSWORD) -X GET https://$(CHART_REGISTRY)/v2/$(ENV_REPOSITORY)/tags/list | jq '.[]'
 
 
 

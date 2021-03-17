@@ -163,7 +163,6 @@ lazy val graalDockerSettings = Seq(
     "--static"
   ),
   dockerBaseImage := baseImage,
-  dockerUpdateLatest := true,
   dockerChmodType := DockerChmodType.Custom("ugo=rwX"),
   dockerAdditionalPermissions += (DockerChmodType.Custom(
     "ugo=rwx"
