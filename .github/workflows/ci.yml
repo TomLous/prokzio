@@ -24,6 +24,7 @@ jobs:
         env:
           DOCKER_REPOSITORY: docker.pkg.github.com
           DOCKER_USERNAME: ${{ github.repository_owner }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
 #      # TODO some version bumping
 #      - run: make graal-build-docker
