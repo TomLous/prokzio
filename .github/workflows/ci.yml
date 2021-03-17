@@ -34,6 +34,7 @@ jobs:
         with:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSWORD }}
+          git-user-signingkey: true
           git-commit-gpgsign: true
           git-tag-gpgsign: true
           git-push-gpgsign: true
@@ -55,7 +56,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
 
-#      - run: docker run --rm -i service
-#        shell: bash
 
 
