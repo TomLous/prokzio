@@ -49,81 +49,15 @@ define check_module
 endef
 
 
-.DEFAULT_GOAL := list-modules
+.DEFAULT_GOAL := version
 
-# SBT Commands general
-.PHONY: list-modules
-list-modules:
-	@modules=($(MODULES)); for module in "$${modules[@]}"; do echo "$${module}"; done
 
-.PHONY: list-modules-json
-list-modules-json:
-	@echo $(MODULES) | jq -R -c 'split(" ")'
-
-.PHONY: lint
-lint:
-	@$(SBT_COMMAND) scalafmt test:scalafmt scalafmtSbt
-
-.PHONY: test
-test:
-	@$(SBT_COMMAND) test
-
-.PHONY: test-coverage
-test-coverage:
-	$(SBT_COMMAND) -DcacheToDisk=1 coverage test coverageReport coverageAggregate
 
 .PHONY: version
 version:
 	@echo $(VERSION)
 
-.PHONY: upload-codecov
-upload-codecov: guard-CODECOV_TOKEN
-	bash <(curl -s https://codecov.io/bash) -t $(CODECOV_TOKEN)
 
-# GIT Commands
-.PHONY: set-github-config
-set-github-config: guard-GITHUB_ACTOR
-	git config --global user.name "$(GITHUB_ACTOR)"
-	git config --global user.email "$(GITHUB_ACTOR)@users.noreply.github.com"
-
-.PHONY: git-push
-git-push:
-	git push
-	git push --tags
-
-.PHONY: create-hotfix-branch
-create-hotfix-branch:
-	git fetch
-	git branch -d hotfix || true
-	git checkout -b hotfix $$(git describe --tags --abbrev=0 | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$")
-
-.PHONY: create-feature-branch
-create-feature-branch:
-	@git checkout main && git fetch && git pull
-	git checkout -b feature/$(FEATURE)
-
-
-# SBT Version bumping
-.PHONY: bump-snapshot
-bump-snapshot:
-	$(SBT_COMMAND) bumpSnapshot
-
-.PHONY: bump-release
-bump-release:
-	$(SBT_COMMAND) bumpRelease
-
-.PHONY: bump-patch
-bump-patch:
-	$(SBT_COMMAND) bumpPatch
-
-.PHONY: bump-snapshot-and-push
-bump-snapshot-and-push: set-github-config bump-snapshot git-push
-
-.PHONY: bump-release-and-push
-bump-release-and-push: set-github-config bump-release git-push
-
-.PHONY: bump-patch-and-push
-bump-patch-and-push: set-github-config bump-patch git-push
 
 # Build Commands
 .PHONY: graal-build-local
