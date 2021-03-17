@@ -12,3 +12,4 @@ addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.6.1")
 
 // Automated release process https://github.com/sbt/sbt-release
 addSbtPlugin("com.github.sbt" % "sbt-release" % "1.0.15")
+//addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.13")

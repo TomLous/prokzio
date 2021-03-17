@@ -1,5 +1,5 @@
 import com.typesafe.sbt.packager.docker.DockerChmodType
-//import sbtrelease.ReleasePlugin.autoImport.ReleaseTransformations._
+import ReleaseTransformations._
 
 // Versions
 lazy val scala2Version = "2.13.5"
@@ -28,6 +28,7 @@ val baseGraalOptions = Seq(
 )
 
 // Variables
+lazy val baseName = "prokzio"
 lazy val baseImage = "alpine:3.13.1"
 lazy val dockerBasePath = "/opt/docker/bin"
 
@@ -47,7 +48,8 @@ lazy val prokzio = (project in file("."))
   )
   .settings(
     crossScalaVersions := Nil,
-    publish / skip := true
+    publish / skip := true,
+    name := baseName
   )
 
 lazy val util = (project in file("util"))
@@ -170,41 +172,60 @@ lazy val graalDockerSettings = Seq(
     ((target in GraalVMNativeImage).value / name.value) -> dockerBinaryPath.value
   ),
   dockerExposedPorts := Seq(9000, 9001), // TODO <- correct this with config?
-  dockerEntrypoint := Seq(dockerBinaryPath.value)
+  dockerEntrypoint := Seq(dockerBinaryPath.value),
+  dockerRepository := sys.env.get("DOCKER_REPOSITORY"),
+  dockerAlias := DockerAlias(
+    dockerRepository.value,
+    dockerUsername.value,
+    s"$baseName/$baseName-${name.value}",
+    Some(version.value)
+  ),
+  dockerUpdateLatest := true,
+  dockerUsername := sys.env.get("DOCKER_USERNAME")
 )
 
 Global / cancelable := false
 
 lazy val dockerBinaryPath = settingKey[String]("Get the docker path")
 
-//// Release
-//lazy val releaseSettings = Seq(
-//  releaseProcess := {
-//    val uploadNativeDocker: ReleaseStep = ReleaseStep(
-//      action = { st: State =>
-//        val extracted = Project.extract(st)
-//        val (st2, _) = extracted.runTask(packageBin in GraalVMNativeImage in nativeServer, st)
-//        val (st3, _) = extracted.runTask(publish in Docker in nativeServer, st2)
-//        st3
-//      }
-//    )
-//
-//    Seq(
-//      checkSnapshotDependencies,
-//      inquireVersions,
-//      // publishing locally so that the pgp password prompt is displayed early
-//      // in the process
-//      releaseStepCommand("publishLocalSigned"),
-//      runClean,
-//      runTest,
-//      setReleaseVersion,
-//      uploadNativeDocker,
-//      updateVersionInDocs(organization.value),
-//      commitReleaseVersion,
-//      tagRelease,
-//      publishArtifacts,
-//      releaseStepCommand("sonatypeBundleRelease"),
-//      pushChanges
-//    )
-//  }
-//)
+// Release
+def publishNativeDocker(project: Project): ReleaseStep =
+  ReleaseStep(
+    action = { st: State =>
+      val extracted = Project.extract(st)
+      val (st2, _) = extracted.runTask(packageBin in GraalVMNativeImage in project, st)
+      val (st3, _) = extracted.runTask(publish in Docker in project, st2)
+      st3
+    }
+  )
+
+releaseProcess := {
+  Seq(
+    checkSnapshotDependencies,
+    inquireVersions,
+    runClean,
+    runTest,
+    setReleaseVersion,
+    publishNativeDocker(service),
+    commitReleaseVersion,
+    tagRelease,
+    pushChanges
+  )
+}
+
+/*
+lazy val changelogTemplatePath    = settingKey[Path]("Path to CHANGELOG.md template")
+lazy val changelogDestinationPath = settingKey[Path]("Path to CHANGELOG.md destination")
+lazy val changelogGenerate        = taskKey[Unit]("Generates CHANGELOG.md file based on git log")
+
+changelogGenerate := {
+  val changelog = ChangeLogger.generateChangelogString(
+    changelogTemplatePath.value,
+    version.value,
+    LocalDate.now(),
+    unreleasedCommits.value.map(_.msg)
+  )
+
+  IO.write(changelogDestinationPath.value.toFile, changelog.getBytes(StandardCharsets.UTF_8))
+}
+ */
