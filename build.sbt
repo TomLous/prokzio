@@ -177,11 +177,11 @@ lazy val graalDockerSettings = Seq(
   dockerAlias := DockerAlias(
     dockerRepository.value,
     dockerUsername.value,
-    s"$baseName/$baseName-${name.value}",
+    s"$baseName/$baseName-${name.value}".toLowerCase,
     Some(version.value)
   ),
   dockerUpdateLatest := true,
-  dockerUsername := sys.env.get("DOCKER_USERNAME")
+  dockerUsername := sys.env.get("DOCKER_USERNAME").map(_.toLowerCase)
 )
 
 Global / cancelable := false
