@@ -189,29 +189,102 @@ Global / cancelable := false
 lazy val dockerBinaryPath = settingKey[String]("Get the docker path")
 
 // Release
+val nextReleaseBump = sbtrelease.Version.Bump.Minor
+
 def publishNativeDocker(project: Project): ReleaseStep =
   ReleaseStep(
-    action = { st: State =>
-      val extracted = Project.extract(st)
-      val (st2, _) = extracted.runTask(packageBin in GraalVMNativeImage in project, st)
-      val (st3, _) = extracted.runTask(publish in Docker in project, st2)
-      st3
+    action = { beginState: State =>
+      val extracted = Project.extract(beginState)
+      Seq(
+        (state: State) => extracted.runTask(packageBin in GraalVMNativeImage in project, state),
+        (state: State) => extracted.runTask(publish in Docker in project, state)
+      ).foldLeft(beginState) { case (newState, runTask) =>
+        runTask(newState)._1
+      }
     }
   )
 
-releaseProcess := {
-  Seq(
-    checkSnapshotDependencies,
-    inquireVersions,
-    runClean,
-    runTest,
-    setReleaseVersion,
-    publishNativeDocker(service),
-    commitReleaseVersion,
-    tagRelease,
-    pushChanges
+val commonPreReleaseSteps: Seq[ReleaseStep] = Seq(
+  checkSnapshotDependencies,
+  inquireVersions,
+  runClean, // <-- TODO Run Lint/fmt
+  runTest
+)
+
+val publishSteps: Seq[ReleaseStep] = Seq(
+  publishNativeDocker(service)
+)
+
+val releaseProcessBumpAndTag: Seq[ReleaseStep] =
+  commonPreReleaseSteps ++
+    Seq(setReleaseVersion) ++
+    publishSteps ++
+    Seq(
+      commitReleaseVersion,
+      tagRelease,
+      pushChanges
+    ) // <-- TODO Add changelog / TODO add coverage analyzer badges etc
+
+val releaseProcessSnapshotBump: Seq[ReleaseStep] = commonPreReleaseSteps ++
+  Seq(setNextVersion) ++
+  publishSteps ++
+  Seq(ReleaseStep(commitNextVersion), pushChanges)
+
+def bumpedVersion(bump: sbtrelease.Version.Bump, state: State)(version: String): String = {
+  sbtrelease
+    .Version(version)
+    .map {
+      case v if version == v.withoutQualifier.string =>
+        v.bump(bump).withoutQualifier.string
+      case v => v.withoutQualifier.string
+    }
+    .getOrElse(sbtrelease.versionFormatError(version))
+}
+
+def nextSnapshotVersion(bump: sbtrelease.Version.Bump, state: State)(version: String): String = {
+  val shortHashLength = 7
+  val shortHash = vcs(state).currentHash.substring(0, shortHashLength)
+  sbtrelease
+    .Version(version)
+    .map(
+      _.copy(qualifier = Some(s"-$shortHash-SNAPSHOT")).string
+    )
+    .getOrElse(sbtrelease.versionFormatError(version))
+}
+
+def bump(bump: sbtrelease.Version.Bump, steps: Seq[ReleaseStep])(
+    state: State
+): State = {
+  Command.process(
+    "release with-defaults",
+    Project
+      .extract(state)
+      .appendWithoutSession(
+        Seq(
+          releaseVersionBump := bump,
+          releaseProcess := steps,
+          releaseVersion := bumpedVersion(bump, state),
+          releaseNextVersion := nextSnapshotVersion(releaseVersionBump.value, state)
+        ),
+        state
+      )
   )
 }
+
+def vcs(state: State): sbtrelease.Vcs =
+  Project
+    .extract(state)
+    .get(releaseVcs)
+    .getOrElse(
+      sys.error("Aborting release. Working directory is not a repository of a recognized VCS.")
+    )
+
+commands += Command.command("bumpRelease")(
+  bump(nextReleaseBump, releaseProcessBumpAndTag)
+)
+commands += Command.command("bumpSnapshot")(
+  bump(nextReleaseBump, releaseProcessSnapshotBump)
+)
 
 /*
 lazy val changelogTemplatePath    = settingKey[Path]("Path to CHANGELOG.md template")
