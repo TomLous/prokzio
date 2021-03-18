@@ -1,40 +1,24 @@
 # prokzio
-Zio gRPC/REST HTTP Proxy for Kafka
+#### A Zio gRPC/REST HTTP Proxy for Kafka
+
+[TODO some badges]
+
+This project is made as proof of concept to run highly performant, light weight gRPC/REST API based on Scala based on the [Zio](https://zio.dev/) framework
 
 
-### Install GraalVM on Mac with Honebrew & jenv
-`brew install --cask graalvm/tap/graalvm-ce-java11`
+## Medium Articles
+- [Day 0](https://tomlous.medium.com/building-an-open-source-scala-grpc-rest-http-proxy-for-kafka-i-d259ce6b9a20)
+- [Day 1](https://tomlous.medium.com/building-an-open-source-scala-grpc-rest-http-proxy-for-kafka-ii-81f1c680fed3)
 
-#### add to ~/.zshrc
-`export GRAALVM_HOME="/Library/Java/JavaVirtualMachines/graalvm-ce-java11-21.0.0/Contents/Home/"`
 
-#### allow to execute graalvm
-`sudo xattr -r -d com.apple.quarantine /Library/Java/JavaVirtualMachines/graalvm-ce-java11-21.0.0`
+## Local
 
-#### install native-image tool
-`/Library/Java/JavaVirtualMachines/graalvm-ce-java11-21.0.0/Contents/Home/bin/gu install native-image`
+- `make graal-build-local service` Builds local binary of the service in a file `output/service`
 
-#### install espresso
-`/Library/Java/JavaVirtualMachines/graalvm-ce-java11-21.0.0/Contents/Home/bin/gu install espresso`
+- `make graal-build-docker-local service` Builds linux binary of the service, wraped in an alpine container in docker image called `service`
 
-#### add to jenv
-`jenv add /Library/Java/JavaVirtualMachines/graalvm-ce-java11-21.0.0/Contents/Home`
+TODO add all make commands 
 
-#### enable export
-`jenv enable-plugin export`
+## About 
 
-#### set jenv
-`jenv local graalvm64-11.0.10`
-
-Before running sbt
-#### 
-`exec $SHELL -l`
-
-### part0-setup
-Test 1
-```
-sbt service/'graalvm-native-image:packageBin'
-./service/target/graalvm-native-image/service
-```
-
-Works!
+Created by [TomLous](https://github.com/TomLous/)

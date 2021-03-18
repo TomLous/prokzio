@@ -54,7 +54,7 @@ graal-build-local:
 	$(SBT_COMMAND) $(MODULE)/nativeImage
 
 .PHONY: graal-build-docker-local
-graal-build-docke-localr:
+graal-build-docker-local:
 	@$(call check_module)
 	$(SBT_COMMAND) $(MODULE)/graalvm-native-image:packageBin
 	$(SBT_COMMAND) $(MODULE)/docker:publishLocal
