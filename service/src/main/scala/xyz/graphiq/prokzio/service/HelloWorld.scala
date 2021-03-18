@@ -1,16 +1,18 @@
 package xyz.graphiq.prokzio.service
 
-import zio.console._
+import zio._
 
 object HelloWorld extends zio.App {
 
   def run(args: List[String]) =
     myAppLogic.exitCode
 
+  val task = Task(println(s"Hello, world from thread: ${Thread.currentThread().getName}!"))
+
   val myAppLogic =
     for {
-      _ <- putStrLn("Hello! What is your name?")
-      name <- getStrLn
-      _ <- putStrLn(s"Hello, ${name}, welcome to ZIO!")
+      fiber <- task.fork
+      _ <- task
+      _ <- fiber.join
     } yield ()
 }
