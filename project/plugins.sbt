@@ -12,4 +12,7 @@ addSbtPlugin("org.scoverage" % "sbt-scoverage" % "1.6.1")
 
 // Automated release process https://github.com/sbt/sbt-release
 addSbtPlugin("com.github.sbt" % "sbt-release" % "1.0.15")
-//addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.13")
+
+// Generare code based on proto https://github.com/scalapb/zio-grpc
+addSbtPlugin("com.thesamet" % "sbt-protoc" % "1.0.2")
+libraryDependencies += "com.thesamet.scalapb.zio-grpc" %% "zio-grpc-codegen" % "0.4.4"

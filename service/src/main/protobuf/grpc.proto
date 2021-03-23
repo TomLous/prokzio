@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "xyz.graphiq.prokzio.service";
+option java_outer_classname = "ProkzioGRPC";
+
+package grpc;
+
+import "google/protobuf/wrappers.proto";
+
+service ProkzioService {
+  rpc Produce (ProducerRequest) returns (ProducerResponse) {}
+}
+
+message ProducerRequest {
+  bytes record = 1;
+  string topic = 2;
+  .google.protobuf.BytesValue record_key = 3;
+  sint32 aks = 4;
+  repeated RecordHeader record_headers = 5;
+}
+
+message RecordHeader {
+  string key = 1;
+  bytes value = 2;
+}
+
+message ProducerResponseAsyncSuccess {
+  bool success = 1;
+}
+
+message ProducerResponseSyncSuccess {
+  bool success = 1;
+  uint32 partition = 2;
+  uint64 offset = 3;
+}
+
+message ProducerResponseError {
+  bool success = 1;
+  uint32 error_code = 2;
+  string error_message = 3;
+}
+
+message ProducerResponse {
+  oneof response {
+    ProducerResponseAsyncSuccess success_async_response = 1;
+    ProducerResponseSyncSuccess success_sync_response = 2;
+    ProducerResponseError error_response = 3;
+  }
+}
