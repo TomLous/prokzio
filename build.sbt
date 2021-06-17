@@ -5,8 +5,9 @@ import ReleaseTransformations._
 lazy val scala2Version = "2.13.5"
 
 // Library versions
-val zioVersion = "1.0.4-2"
+val zioVersion = "1.0.4"
 val grpcVersion = "1.36.0"
+val zioKafkaVersion = "0.14.0"
 
 // Graal/JVM stuff. Needs to be available here https://github.com/orgs/graalvm/packages/container/graalvm-ce/versions
 val jvmVersion = "11"
@@ -49,6 +50,10 @@ lazy val grpcLibs = Seq(
   "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion,
   "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
   "io.grpc" % "grpc-netty" % grpcVersion
+)
+
+val kafkaLibs = Seq(
+  "dev.zio" %% "zio-kafka" % zioKafkaVersion
 )
 
 // (Sub) projects
@@ -105,7 +110,7 @@ def createProjectModule(
 lazy val commonSettings = Seq(
   organization := "xyz.graphiq",
   scalaVersion := scala2Version,
-  libraryDependencies ++= zioLibs ++ grpcLibs,
+  libraryDependencies ++= zioLibs ++ grpcLibs ++ kafkaLibs,
   scalacOptions ++= Seq(
     "-deprecation", // Emit warning and location for usages of deprecated APIs.
     "-encoding",
@@ -295,10 +300,10 @@ def vcs(state: State): sbtrelease.Vcs =
       sys.error("Aborting release. Working directory is not a repository of a recognized VCS.")
     )
 
-commands += Command.command("bumpRelease")(
+commands += Command.command("deployRelease")(
   bump(nextReleaseBump, releaseProcessBumpAndTag)
 )
-commands += Command.command("bumpSnapshot")(
+commands += Command.command("deploySnapshot")(
   bump(nextReleaseBump, releaseProcessSnapshotBump)
 )
 

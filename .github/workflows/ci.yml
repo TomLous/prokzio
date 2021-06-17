@@ -49,7 +49,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Lint, Test, Bump & Deploy
-        run: sbt bumpSnapshot
+        run: sbt deploySnapshot
         env:
           DOCKER_REPOSITORY: ghcr.io
           DOCKER_USERNAME: ${{ github.repository_owner }}
